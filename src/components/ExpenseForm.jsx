@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, DollarSign, Receipt, User2 } from 'lucide-react';
+import { Plus, DollarSign, Receipt, User2, Users } from 'lucide-react';
 import { CURRENCIES, EXPENSE_CATEGORIES } from '../constants';
 
 const ExpenseForm = ({ people, onAddExpense, isPending = false }) => {
@@ -9,20 +9,49 @@ const ExpenseForm = ({ people, onAddExpense, isPending = false }) => {
     description: '',
     currency: 'USD',
     category: '',
+    splitWith: [], // New field for tracking who to split with
   });
+
+  // Helper to check if the dropdown should be shown
+  const [isSelectOpen, setIsSelectOpen] = useState(false);
 
   const handleSubmit = () => {
     if (!newExpense.paidBy || !newExpense.amount || !newExpense.description) {
       return;
     }
-    onAddExpense(newExpense);
+    // If splitWith is empty, include all people
+    const finalExpense = {
+      ...newExpense,
+      splitWith: newExpense.splitWith.length > 0 
+        ? newExpense.splitWith 
+        : people.map(p => p.name).filter(Boolean)
+    };
+    onAddExpense(finalExpense);
     setNewExpense({
       paidBy: '',
       amount: '',
       description: '',
       currency: 'USD',
       category: '',
+      splitWith: [],
     });
+  };
+
+  const handleSplitWithChange = (personName) => {
+    setNewExpense(prev => ({
+      ...prev,
+      splitWith: prev.splitWith.includes(personName)
+        ? prev.splitWith.filter(name => name !== personName)
+        : [...prev.splitWith, personName]
+    }));
+  };
+
+  const toggleSelectAll = () => {
+    const allNames = people.map(p => p.name).filter(Boolean);
+    setNewExpense(prev => ({
+      ...prev,
+      splitWith: prev.splitWith.length === allNames.length ? [] : allNames
+    }));
   };
 
   return (
@@ -104,6 +133,64 @@ const ExpenseForm = ({ people, onAddExpense, isPending = false }) => {
                 ) : null
               )}
             </select>
+          </div>
+        </div>
+
+        {/* Split With Selection */}
+        <div className="relative">
+          <label className="block text-sm font-medium text-gray-700 mb-1">Split with</label>
+          <div className="relative">
+            <div 
+              className="w-full p-2 border border-gray-200 rounded-md bg-white cursor-pointer min-h-[40px]"
+              onClick={() => setIsSelectOpen(!isSelectOpen)}
+            >
+              <div className="flex items-center gap-1 flex-wrap">
+                {newExpense.splitWith.length === 0 ? (
+                  <span className="text-gray-500">Everyone</span>
+                ) : (
+                  newExpense.splitWith.map(name => (
+                    <span key={name} className="bg-indigo-100 text-indigo-800 px-2 py-1 rounded-md text-sm">
+                      {name}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            
+            {isSelectOpen && (
+              <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg">
+                <div 
+                  className="p-2 border-b border-gray-200 cursor-pointer hover:bg-gray-50"
+                  onClick={toggleSelectAll}
+                >
+                  <div className="flex items-center gap-2">
+                    <Users className="h-4 w-4 text-gray-400" />
+                    <span className="text-sm font-medium">
+                      {newExpense.splitWith.length === people.filter(p => p.name).length 
+                        ? 'Deselect All' 
+                        : 'Select All'}
+                    </span>
+                  </div>
+                </div>
+                {people.map((person) =>
+                  person.name ? (
+                    <div
+                      key={person.id}
+                      className="p-2 cursor-pointer hover:bg-gray-50 flex items-center gap-2"
+                      onClick={() => handleSplitWithChange(person.name)}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={newExpense.splitWith.includes(person.name)}
+                        onChange={() => {}}
+                        className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                      />
+                      <span className="text-sm">{person.name}</span>
+                    </div>
+                  ) : null
+                )}
+              </div>
+            )}
           </div>
         </div>
 

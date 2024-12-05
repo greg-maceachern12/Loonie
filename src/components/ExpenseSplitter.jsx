@@ -281,15 +281,16 @@ const ExpenseSplitter = () => {
     });
 
     expenses.forEach((expense) => {
-      const splitAmount = expense.amount / people.length;
-      people.forEach((person) => {
-        if (person.name) {
-          if (person.name === expense.paid_by) {
-            balances[person.name] += expense.amount - splitAmount;
-          } else {
-            balances[person.name] -= splitAmount;
-          }
-        }
+      // Determine who to split with - if splitWith is not specified, split with everyone
+      const splitParticipants = expense.splitWith || people.map(p => p.name).filter(Boolean);
+      const splitAmount = expense.amount / splitParticipants.length;
+      
+      // Add the full amount to the payer
+      balances[expense.paid_by] += expense.amount;
+      
+      // Subtract the split amount from each participant
+      splitParticipants.forEach((personName) => {
+        balances[personName] -= splitAmount;
       });
     });
 
